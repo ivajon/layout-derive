@@ -19,7 +19,7 @@ impl layout_trait::GetLayout for Custom {
     }
 }
 
-#[derive(Layout)]
+// #[derive(Layout)]
 enum Enum {
     A,
     B(u32),
