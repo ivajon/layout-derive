@@ -19,15 +19,19 @@ impl layout_trait::GetLayout for Custom {
     }
 }
 
-// #[derive(Layout)]
+//#[derive(Layout)]
 enum Enum {
     A,
-    B(u32),
+    B(Custom),
 }
 
 fn main() {
     let mut layout: Vec<layout_trait::Layout, 8> = Vec::new();
     let a = Enum::A;
+    a.get_layout(&mut layout);
+    println!("{:?}", layout);
+
+    let a = Enum::B(Custom {});
     a.get_layout(&mut layout);
     println!("{:?}", layout);
 }
