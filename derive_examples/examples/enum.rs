@@ -1,6 +1,7 @@
 #![feature(min_specialization)]
 use heapless::Vec;
 
+use layout_derive::Layout;
 use layout_trait::{GetLayout, GetLayoutType, Layout};
 
 struct Proxy {}
@@ -16,8 +17,7 @@ impl GetLayoutType for Proxy {
     }
 }
 
-// #[derive(Layout)]
-
+#[derive(Layout)]
 enum Enum {
     A,
     B(Proxy),
@@ -26,16 +26,21 @@ enum Enum {
     E,
 }
 
-impl GetLayoutType for Enum {
-    fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<Layout, N>) {
-        println!("-- Enum --");
-        Proxy::get_layout_type(layout);
-    }
+#[derive(Layout)]
+
+struct Resource {
+    en: Enum,
+    data: u32,
+    data2: u64,
 }
 
 fn main() {
     let mut layout: Vec<layout_trait::Layout, 8> = Vec::new();
-    let mut a = Enum::A;
-    a.get_layout(&mut layout);
+    let r = Resource {
+        en: Enum::A,
+        data: 0,
+        data2: 0,
+    };
+    r.get_layout(&mut layout);
     println!("{:?}", layout);
 }

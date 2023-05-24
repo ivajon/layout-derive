@@ -1,7 +1,9 @@
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Index};
+// use syn::token::Question;
+use either::Either;
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Index, Type};
 
 // Derive macro loosely based on the `syn` `HeapSize` example
 
@@ -16,10 +18,23 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
     // Generate layout information
     let layout = layout(&input.data);
 
-    let expanded = quote! {
-        impl layout_trait::GetLayout for #name  {
-            fn get_layout<const N: usize>(&self, layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
-                #layout
+    let expanded = match layout {
+        Either::Left(ts) => {
+            quote! {
+                impl layout_trait::GetLayout for #name  {
+                    fn get_layout<const N: usize>(&self, layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
+                        #ts
+                    }
+                }
+            }
+        }
+        Either::Right(ts) => {
+            quote! {
+                impl layout_trait::GetLayoutType for #name  {
+                    fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
+                        #ts
+                    }
+                }
             }
         }
     };
@@ -29,7 +44,7 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 }
 
 // Generate layout information
-fn layout(data: &Data) -> TokenStream {
+fn layout(data: &Data) -> Either<TokenStream, TokenStream> {
     match *data {
         Data::Struct(ref data) => {
             match data.fields {
@@ -40,9 +55,9 @@ fn layout(data: &Data) -> TokenStream {
                             self.#name.get_layout(layout)
                         }
                     });
-                    quote! {
+                    Either::Left(quote! {
                         #(#recurse;)*
-                    }
+                    })
                 }
                 Fields::Unnamed(ref fields) => {
                     let recurse = fields.unnamed.iter().enumerate().map(|(i, f)| {
@@ -51,9 +66,9 @@ fn layout(data: &Data) -> TokenStream {
                             self.#index.get_layout(layout)
                         }
                     });
-                    quote! {
+                    Either::Left(quote! {
                         #(#recurse;)*
-                    }
+                    })
                 }
                 Fields::Unit => {
                     // Unit structs have no layout
@@ -64,25 +79,24 @@ fn layout(data: &Data) -> TokenStream {
         }
         Data::Enum(ref data) => {
             let mut rec: Vec<TokenStream> = vec![];
-            data.variants.iter().clone().for_each(|f| {
-                // let name = &f.ident;
-                let recurse = &f.fields.iter().enumerate().map(|(i, f)| {
-                    let index = Index::from(i);
-                    quote_spanned! {f.span()=>
-                        self.#index.get_layout(layout)
+            for v in data.variants.iter() {
+                for f in v.fields.iter() {
+                    let ty = &f.ty;
+
+                    match ty {
+                        Type::Path(path) => {
+                            rec.push(quote_spanned! {f.span()=>
+                                #path::get_layout_type(layout);
+                            });
+                        }
+                        _ => {}
                     }
-                });
-                let recurse = recurse.clone();
-                let ts = quote! {
-                    #(#recurse;)*
                 }
-                .clone();
-                rec.push(ts);
-            });
-            quote! {
-             #(#rec;)*
             }
-            // quote! {}
+
+            Either::Right(quote! {
+                #(#rec;)*
+            })
         }
         Data::Union(_) => unimplemented!(),
     }
