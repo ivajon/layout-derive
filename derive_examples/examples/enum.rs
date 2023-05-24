@@ -17,12 +17,20 @@ impl GetLayoutType for Proxy {
 }
 
 // #[derive(Layout)]
+
 enum Enum {
     A,
     B(Proxy),
     C([u32; 100]),
     D,
     E,
+}
+
+impl GetLayoutType for Enum {
+    fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<Layout, N>) {
+        println!("-- Enum --");
+        Proxy::get_layout_type(layout);
+    }
 }
 
 fn main() {
