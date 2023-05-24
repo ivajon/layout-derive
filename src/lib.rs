@@ -62,6 +62,28 @@ fn layout(data: &Data) -> TokenStream {
                 }
             }
         }
-        Data::Enum(_) | Data::Union(_) => unimplemented!(),
+        Data::Enum(ref data) => {
+            let mut rec: Vec<TokenStream> = vec![];
+            data.variants.iter().clone().for_each(|f| {
+                // let name = &f.ident;
+                let recurse = &f.fields.iter().enumerate().map(|(i, f)| {
+                    let index = Index::from(i);
+                    quote_spanned! {f.span()=>
+                        self.#index.get_layout(layout)
+                    }
+                });
+                let recurse = recurse.clone();
+                let ts = quote! {
+                    #(#recurse;)*
+                }
+                .clone();
+                rec.push(ts);
+            });
+            quote! {
+             #(#rec;)*
+            }
+            // quote! {}
+        }
+        Data::Union(_) => unimplemented!(),
     }
 }

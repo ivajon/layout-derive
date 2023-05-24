@@ -1,7 +1,7 @@
 #![feature(min_specialization)]
 use heapless::Vec;
 use layout_derive::Layout;
-use layout_trait::{self, GetLayout};
+use layout_trait::GetLayout;
 
 #[derive(Layout)]
 struct Simple {
