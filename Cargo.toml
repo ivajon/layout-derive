@@ -9,8 +9,8 @@ edition = "2021"
 syn = "2.0"
 quote = "1.0"
 proc-macro2 = "1"
-#layout-trait = { git = "https://github.com/perlindgren/layout-trait.git" }
-layout-trait = { path = "../layout-trait" }
+layout-trait = { git = "https://github.com/perlindgren/layout-trait.git" }
+# layout-trait = { path = "../layout-trait" }
 either = "1.8.1"
 
 [lib]
