@@ -1,59 +1,14 @@
 #![feature(min_specialization)]
-use core::ops::Deref;
+use derive_examples::{Proxy1, Proxy2, Proxy3, Proxy4};
 use heapless::Vec;
 use layout_derive::Layout;
-use layout_trait::GetLayout;
-
-struct Proxy1 {}
-
-#[derive(Debug)]
-struct RegisterBlock {
-    reg1: u32,
-    reg2: u32,
-}
-
-impl Deref for Proxy1 {
-    type Target = RegisterBlock;
-    fn deref(&self) -> &Self::Target {
-        println!("--- Proxy deref 1 ---");
-        unsafe { &*(0x1000 as *const RegisterBlock) }
-    }
-}
-
-struct Proxy2 {}
-
-impl Deref for Proxy2 {
-    type Target = RegisterBlock;
-    fn deref(&self) -> &Self::Target {
-        println!("--- Proxy deref 2 ---");
-        unsafe { &*(0x2000 as *const RegisterBlock) }
-    }
-}
-
-struct Proxy3 {}
-
-impl Deref for Proxy3 {
-    type Target = RegisterBlock;
-    fn deref(&self) -> &Self::Target {
-        println!("--- Proxy deref 3 ---");
-        unsafe { &*(0x3000 as *const RegisterBlock) }
-    }
-}
-
-struct Proxy4 {}
-
-impl Deref for Proxy4 {
-    type Target = RegisterBlock;
-    fn deref(&self) -> &Self::Target {
-        println!("--- Proxy deref 4 ---");
-        unsafe { &*(0x4000 as *const RegisterBlock) }
-    }
-}
+use layout_trait::{GetLayout, Layout};
 
 #[derive(Layout)]
 struct Tuple(u32, Proxy1);
 
 #[derive(Layout)]
+#[allow(unused)]
 enum Enum {
     A(Tuple),
     B(Proxy2),
@@ -74,5 +29,47 @@ fn main() {
         en: Enum::A(Tuple(0, Proxy1 {})),
     };
     a.get_layout(&mut layout);
-    println!("{:?}", layout);
+    println!("{:#x?}", layout);
+
+    // u32
+    assert_eq!(layout[0].size, 0x4);
+
+    // Enum
+    assert_eq!(layout[1].size, 0x44);
+
+    // Proxy 1
+    assert_eq!(
+        layout[2],
+        Layout {
+            address: 0x1000,
+            size: 0x8,
+        }
+    );
+
+    // Proxy 2
+    assert_eq!(
+        layout[3],
+        Layout {
+            address: 0x2000,
+            size: 0x8,
+        }
+    );
+
+    // Proxy 3
+    assert_eq!(
+        layout[4],
+        Layout {
+            address: 0x3000,
+            size: 0x8,
+        }
+    );
+
+    // Proxy 4
+    assert_eq!(
+        layout[5],
+        Layout {
+            address: 0x4000,
+            size: 0x8,
+        }
+    );
 }

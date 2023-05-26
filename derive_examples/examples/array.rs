@@ -12,5 +12,8 @@ fn main() {
     let mut layout: Vec<layout_trait::Layout, 8> = Vec::new();
     let a = Simple { a: [1; 5] };
     a.get_layout(&mut layout);
-    println!("{:?}", layout);
+    println!("{:#x?}", layout);
+
+    // [u32;5], 4 * 5
+    assert_eq!(layout[0].size, 20);
 }

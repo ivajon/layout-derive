@@ -1,27 +1,13 @@
 #![feature(min_specialization)]
-use core::ops::Deref;
+use derive_examples::Proxy;
 use heapless::Vec;
 use layout_derive::Layout;
-use layout_trait::GetLayout;
-struct Proxy {}
-
-#[derive(Debug)]
-struct RegisterBlock {
-    reg1: u32,
-    reg2: u32,
-}
-
-impl Deref for Proxy {
-    type Target = RegisterBlock;
-    fn deref(&self) -> &Self::Target {
-        println!("--- Proxy deref ---");
-        unsafe { &*(0x1000 as *const RegisterBlock) }
-    }
-}
+use layout_trait::{GetLayout, Layout};
 
 #[derive(Layout)]
 enum Enum {
     A(Proxy),
+    #[allow(unused)]
     B(u32, u32),
 }
 
@@ -30,4 +16,16 @@ fn main() {
     let d = Enum::A(Proxy {});
     d.get_layout(&mut layout);
     println!("{:?}", layout);
+
+    // Enum
+    assert_eq!(layout[0].size, 12); // tag (u32) + 2 * u32 in tuple
+
+    // Proxy
+    assert_eq!(
+        layout[1],
+        Layout {
+            address: 0x1000,
+            size: 8
+        }
+    );
 }
