@@ -30,7 +30,9 @@ impl GetLayout for Simple {
 }
 ```
 
-The derive also works for nested structs and tuples, while enums are yet not implemented. Notice, primitive enums should work since a default implementation of `GetLayout` is provided for all `T`.
+The derive also works for nested structs, tuples and enums (unions are not yet implemented but follow the same pattern as enums.)
+
+The derive macro does not currently support generic parameters.
 
 ---
 
@@ -48,3 +50,9 @@ cargo expand --example simple > simple_expanded.rs
 ## Panics
 
 Notice, we assume the `layout` (`heapless::Vec`), to be of sufficient size to accommodate the result (will panic if insufficient).
+
+---
+
+## License
+
+For now copyright Per Lindgren, but the intention once stake holder interests have been confirmed, is to release the trait and derive macros under a permissive license.
