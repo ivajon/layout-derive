@@ -2,7 +2,7 @@
 use core::ops::Deref;
 use heapless::Vec;
 use layout_derive::Layout;
-use layout_trait::{GetLayout, GetLayoutType};
+use layout_trait::GetLayout;
 
 struct Proxy1 {}
 

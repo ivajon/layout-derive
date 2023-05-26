@@ -63,7 +63,7 @@ fn layout(data: &Data) -> Either<(TokenStream, TokenStream), TokenStream> {
                     let recurse_type = fields.named.iter().map(|f| {
                         let name = &f.ty;
                         quote_spanned! {f.span()=>
-                            #name::get_layout_type(layout)
+                            <#name>::get_layout_type(layout)
                         }
                     });
                     Either::Left((

@@ -1,4 +1,4 @@
-#![feature(specialization)]
+#![feature(min_specialization)]
 use core::ops::Deref;
 use heapless::Vec;
 use layout_derive::Layout;
