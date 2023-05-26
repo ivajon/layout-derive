@@ -1,10 +1,10 @@
-#![feature(specialization)]
+#![feature(min_specialization)]
 use core::ops::Deref;
 use heapless::Vec;
 use layout_derive::Layout;
-use layout_trait::GetLayout;
+use layout_trait::{GetLayout, GetLayoutType};
 
-struct Proxy {}
+struct Proxy1 {}
 
 #[derive(Debug)]
 struct RegisterBlock {
@@ -12,26 +12,27 @@ struct RegisterBlock {
     reg2: u32,
 }
 
-impl Deref for Proxy {
+impl Deref for Proxy1 {
     type Target = RegisterBlock;
     fn deref(&self) -> &Self::Target {
-        println!("--- Proxy deref ---");
+        println!("--- Proxy deref 1 ---");
         unsafe { &*(0x1000 as *const RegisterBlock) }
     }
 }
 
 #[derive(Layout)]
-struct Custom {
-    proxy: Proxy,
-    b: u32,
+struct Tuple(u32, Proxy1);
+
+#[derive(Layout)]
+enum Enum {
+    A(Tuple),
 }
 
 fn main() {
     let mut layout: Vec<layout_trait::Layout, 8> = Vec::new();
-    let a = Custom {
-        proxy: Proxy {},
-        b: 0,
-    };
+
+    let a = Enum::A(Tuple(0, Proxy1 {}));
+
     a.get_layout(&mut layout);
     println!("{:?}", layout);
 }

@@ -1,57 +1,52 @@
 #![feature(min_specialization)]
+use core::ops::Deref;
 use heapless::Vec;
 use layout_derive::Layout;
-use layout_trait::{GetLayout, GetLayoutType, Layout};
+use layout_trait::{GetLayout, GetLayoutType};
 
 struct Proxy1 {}
-impl GetLayoutType for Proxy1 {
-    fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<Layout, N>) {
-        println!("-- Proxy1 --");
-        layout
-            .push(layout_trait::Layout {
-                address: 1024,
-                size: 4,
-            })
-            .unwrap()
+
+#[derive(Debug)]
+struct RegisterBlock {
+    reg1: u32,
+    reg2: u32,
+}
+
+impl Deref for Proxy1 {
+    type Target = RegisterBlock;
+    fn deref(&self) -> &Self::Target {
+        println!("--- Proxy deref 1 ---");
+        unsafe { &*(0x1000 as *const RegisterBlock) }
     }
 }
 
 struct Proxy2 {}
-impl GetLayoutType for Proxy2 {
-    fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<Layout, N>) {
-        println!("-- Proxy2 --");
-        layout
-            .push(layout_trait::Layout {
-                address: 2048,
-                size: 8,
-            })
-            .unwrap()
+
+impl Deref for Proxy2 {
+    type Target = RegisterBlock;
+    fn deref(&self) -> &Self::Target {
+        println!("--- Proxy deref 2 ---");
+        unsafe { &*(0x2000 as *const RegisterBlock) }
     }
 }
 
 struct Proxy3 {}
-impl GetLayoutType for Proxy3 {
-    fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<Layout, N>) {
-        println!("-- Proxy3 --");
-        layout
-            .push(layout_trait::Layout {
-                address: 3333,
-                size: 8,
-            })
-            .unwrap()
+
+impl Deref for Proxy3 {
+    type Target = RegisterBlock;
+    fn deref(&self) -> &Self::Target {
+        println!("--- Proxy deref 3 ---");
+        unsafe { &*(0x3000 as *const RegisterBlock) }
     }
 }
 
 struct Proxy4 {}
-impl GetLayoutType for Proxy4 {
-    fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<Layout, N>) {
-        println!("-- Proxy4 --");
-        layout
-            .push(layout_trait::Layout {
-                address: 3333,
-                size: 8,
-            })
-            .unwrap()
+
+impl Deref for Proxy4 {
+    type Target = RegisterBlock;
+    fn deref(&self) -> &Self::Target {
+        println!("--- Proxy deref 4 ---");
+        unsafe { &*(0x4000 as *const RegisterBlock) }
     }
 }
 
@@ -68,14 +63,14 @@ enum Enum {
 
 #[derive(Layout)]
 struct Resources {
-    tuple: Tuple,
+    a: u32,
     en: Enum,
 }
 
 fn main() {
     let mut layout: Vec<layout_trait::Layout, 8> = Vec::new();
     let a = Resources {
-        tuple: Tuple(0, Proxy1 {}),
+        a: 0,
         en: Enum::A(Tuple(0, Proxy1 {})),
     };
     a.get_layout(&mut layout);

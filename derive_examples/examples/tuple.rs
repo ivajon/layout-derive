@@ -1,18 +1,22 @@
 #![feature(min_specialization)]
+use core::ops::Deref;
 use heapless::Vec;
 use layout_derive::Layout;
-use layout_trait::{GetLayout, GetLayoutType, Layout};
+use layout_trait::GetLayout;
 
 struct Proxy {}
-impl GetLayoutType for Proxy {
-    fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<Layout, N>) {
-        println!("-- Proxy --");
-        layout
-            .push(layout_trait::Layout {
-                address: 1024,
-                size: 4,
-            })
-            .unwrap()
+
+#[derive(Debug)]
+struct RegisterBlock {
+    reg1: u32,
+    reg2: u32,
+}
+
+impl Deref for Proxy {
+    type Target = RegisterBlock;
+    fn deref(&self) -> &Self::Target {
+        println!("--- Proxy deref ---");
+        unsafe { &*(0x1000 as *const RegisterBlock) }
     }
 }
 

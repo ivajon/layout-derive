@@ -1,12 +1,11 @@
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
-// use syn::token::Question;
-use either::Either;
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Index, Type};
 
-// Derive macro loosely based on the `syn` `HeapSize` example
+use either::Either;
 
+// Derive macro loosely based on the `syn` `HeapSize` example
 #[proc_macro_derive(Layout)]
 pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
@@ -19,11 +18,17 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
     let layout = layout(&input.data);
 
     let expanded = match layout {
-        Either::Left(ts) => {
+        Either::Left((ts_get_layout, ts_get_layout_type)) => {
             quote! {
                 impl layout_trait::GetLayout for #name  {
                     fn get_layout<const N: usize>(&self, layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
-                        #ts
+                        #ts_get_layout
+                    }
+                }
+
+                impl layout_trait::GetLayoutType for #name  {
+                    fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
+                        #ts_get_layout_type
                     }
                 }
             }
@@ -44,7 +49,7 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 }
 
 // Generate layout information
-fn layout(data: &Data) -> Either<TokenStream, TokenStream> {
+fn layout(data: &Data) -> Either<(TokenStream, TokenStream), TokenStream> {
     match *data {
         Data::Struct(ref data) => {
             match data.fields {
@@ -55,9 +60,20 @@ fn layout(data: &Data) -> Either<TokenStream, TokenStream> {
                             self.#name.get_layout(layout)
                         }
                     });
-                    Either::Left(quote! {
-                        #(#recurse;)*
-                    })
+                    let recurse_type = fields.named.iter().map(|f| {
+                        let name = &f.ty;
+                        quote_spanned! {f.span()=>
+                            #name::get_layout_type(layout)
+                        }
+                    });
+                    Either::Left((
+                        quote! {
+                            #(#recurse;)*
+                        },
+                        quote! {
+                            #(#recurse_type;)*
+                        },
+                    ))
                 }
                 Fields::Unnamed(ref fields) => {
                     let recurse = fields.unnamed.iter().enumerate().map(|(i, f)| {
@@ -66,9 +82,20 @@ fn layout(data: &Data) -> Either<TokenStream, TokenStream> {
                             self.#index.get_layout(layout)
                         }
                     });
-                    Either::Left(quote! {
-                        #(#recurse;)*
-                    })
+                    let recurse_type = fields.unnamed.iter().map(|f| {
+                        let name = &f.ty;
+                        quote_spanned! {f.span()=>
+                            #name::get_layout_type(layout)
+                        }
+                    });
+                    Either::Left((
+                        quote! {
+                           #(#recurse;)*
+                        },
+                        quote! {
+                            #(#recurse_type;)*
+                        },
+                    ))
                 }
                 Fields::Unit => {
                     // Unit structs have no layout
