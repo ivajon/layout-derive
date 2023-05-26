@@ -9,3 +9,4 @@ edition = "2021"
 layout-derive = { path = "../" }
 layout-trait = { path = "../../layout-trait" }
 heapless = "0.7.16"
+esp32c3 = "0.14.0"
