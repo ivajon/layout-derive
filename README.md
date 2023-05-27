@@ -1,10 +1,10 @@
 # layout-derive
 
-A proc-macro for deriving the `layout-trait`.
+A procedural-macro for deriving the [layout-trait](https://github.com/perlindgren/layout-trait). The purpose is to provide tight yet safe memory layout information for applications written in the Rust [RTIC](https://rtic.rs/) framework and provides an outset for unprecedented task isolation, and a solid foundation for reasoning on error containment and propagation.
 
 ---
 
-## Examples
+## A small example
 
 ```rust
 #[derive(Layout)]
@@ -32,7 +32,7 @@ impl GetLayout for Simple {
 
 The derive also works for nested structs, tuples and enums (unions are not yet implemented but follow the same pattern as enums.)
 
-The derive macro does not currently support generic parameters.
+The derive macro also supports generic type parameters, however this feature is not yet fully tested.
 
 ---
 
@@ -47,6 +47,13 @@ cargo expand --example simple > simple_expanded.rs
 
 ---
 
+## derive_examples
+
+The `derive_examples` workspace member provides representative use case examples and serves as a testing playground. Later a proper test architecture will be provided, with fail tests etc.
+
+Some of the examples are replicated in the `layout-trait` repository for comparison against expected expansions.
+
+---
 ## Panics
 
 Notice, we assume the `layout` (`heapless::Vec`), to be of sufficient size to accommodate the result (will panic if insufficient).
