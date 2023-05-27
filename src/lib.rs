@@ -14,19 +14,23 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
     // Used in the quasi-quotation below as `#name`.
     let name = input.ident;
 
+    // Extract generics
+    let generics = input.generics;
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
     // Generate layout information
     let layout = layout(&input.data);
 
     let expanded = match layout {
         Either::Left((ts_get_layout, ts_get_layout_type)) => {
             quote! {
-                impl layout_trait::GetLayout for #name  {
+                impl #impl_generics layout_trait::GetLayout for #name #ty_generics #where_clause {
                     fn get_layout<const N: usize>(&self, layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
                         #ts_get_layout
                     }
                 }
 
-                impl layout_trait::GetLayoutType for #name  {
+                impl #impl_generics layout_trait::GetLayoutType for #name #ty_generics #where_clause {
                     fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
                         #ts_get_layout_type
                     }
@@ -35,7 +39,7 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
         }
         Either::Right(ts) => {
             quote! {
-                impl layout_trait::GetLayoutType for #name  {
+                impl #impl_generics layout_trait::GetLayoutType for #name #ty_generics #where_clause  {
                     fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
                         #ts
                     }
