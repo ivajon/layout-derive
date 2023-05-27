@@ -2,7 +2,7 @@
 use derive_examples::Proxy;
 use heapless::Vec;
 use layout_derive::Layout;
-use layout_trait::{GetLayout, Layout};
+use layout_trait::GetLayout;
 
 #[derive(Layout)]
 struct Simple {
@@ -24,6 +24,4 @@ fn main() {
     };
     a.get_layout(&mut layout);
     println!("{:#x?}", layout);
-
-    
 }
