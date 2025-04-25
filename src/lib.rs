@@ -22,11 +22,19 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
     let layout = layout(&input.data);
 
     let expanded = match layout {
-        Either::Left((ts_get_layout, ts_get_layout_type)) => {
+        Either::Left((
+            ts_get_layout,
+            ts_get_layout_type,
+            ts_get_layout_callback,
+            ts_get_layout_type_callback,
+        )) => {
             quote! {
                 impl #impl_generics layout_trait::GetLayout for #name #ty_generics #where_clause {
                     fn get_layout<const N: usize>(&self, layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
                         #ts_get_layout
+                    }
+                    fn get_layout_type_callback<F: Fn(&self,usize, usize)>(&self, f: &F) {
+                        #ts_get_layout_callback
                     }
                 }
 
@@ -34,14 +42,20 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
                     fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
                         #ts_get_layout_type
                     }
+                    fn get_layout_type_callback<F: Fn(usize, usize)>( f: &F) {
+                        #ts_get_layout_type_callback
+                    }
                 }
             }
         }
-        Either::Right(ts) => {
+        Either::Right((ts, ts_callback)) => {
             quote! {
                 impl #impl_generics layout_trait::GetLayoutType for #name #ty_generics #where_clause  {
                     fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
                         #ts
+                    }
+                    fn get_layout_type_callback<F: Fn(usize, usize)>( f: &F) {
+                        #ts_callback
                     }
                 }
             }
@@ -53,7 +67,9 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 }
 
 // Generate layout information
-fn layout(data: &Data) -> Either<(TokenStream, TokenStream), TokenStream> {
+fn layout(
+    data: &Data,
+) -> Either<(TokenStream, TokenStream, TokenStream, TokenStream), (TokenStream, TokenStream)> {
     match *data {
         Data::Struct(ref data) => {
             match data.fields {
@@ -70,12 +86,30 @@ fn layout(data: &Data) -> Either<(TokenStream, TokenStream), TokenStream> {
                             <#name>::get_layout_type(layout)
                         }
                     });
+                    let recurse_callback = fields.named.iter().map(|f| {
+                        let name = &f.ty;
+                        quote_spanned! {f.span()=>
+                            self.#name.get_layout_callback(f)
+                        }
+                    });
+                    let recurse_type_callback = fields.named.iter().map(|f| {
+                        let name = &f.ty;
+                        quote_spanned! {f.span()=>
+                            <#name>::get_layout_type_callback(f)
+                        }
+                    });
                     Either::Left((
                         quote! {
                             #(#recurse;)*
                         },
                         quote! {
                             #(#recurse_type;)*
+                        },
+                        quote! {
+                            #(#recurse_callback;)*
+                        },
+                        quote! {
+                            #(#recurse_type_callback;)*
                         },
                     ))
                 }
@@ -92,12 +126,30 @@ fn layout(data: &Data) -> Either<(TokenStream, TokenStream), TokenStream> {
                             #name::get_layout_type(layout)
                         }
                     });
+                    let recurse_callback = fields.unnamed.iter().enumerate().map(|(i, f)| {
+                        let index = Index::from(i);
+                        quote_spanned! {f.span()=>
+                            self.#index.get_layout_callback(f)
+                        }
+                    });
+                    let recurse_type_callback = fields.unnamed.iter().map(|f| {
+                        let name = &f.ty;
+                        quote_spanned! {f.span()=>
+                            #name::get_layout_type_callback(f)
+                        }
+                    });
                     Either::Left((
                         quote! {
                            #(#recurse;)*
                         },
                         quote! {
                             #(#recurse_type;)*
+                        },
+                        quote! {
+                           #(#recurse_callback;)*
+                        },
+                        quote! {
+                            #(#recurse_type_callback;)*
                         },
                     ))
                 }
@@ -124,10 +176,30 @@ fn layout(data: &Data) -> Either<(TokenStream, TokenStream), TokenStream> {
                     }
                 }
             }
+            let mut rec_callback: Vec<TokenStream> = vec![];
+            for v in data.variants.iter() {
+                for f in v.fields.iter() {
+                    let ty = &f.ty;
 
-            Either::Right(quote! {
-                #(#rec;)*
-            })
+                    match ty {
+                        Type::Path(path) => {
+                            rec_callback.push(quote_spanned! {f.span()=>
+                                #path::get_layout_type_callback(f);
+                            });
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            Either::Right((
+                quote! {
+                    #(#rec;)*
+                },
+                quote! {
+                    #(#rec_callback;)*
+                },
+            ))
         }
         Data::Union(_) => unimplemented!(),
     }
