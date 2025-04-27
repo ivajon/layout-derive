@@ -30,19 +30,13 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
         )) => {
             quote! {
                 impl #impl_generics layout_trait::GetLayout for #name #ty_generics #where_clause {
-                    fn get_layout<const N: usize>(&self, layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
-                        #ts_get_layout
-                    }
-                    fn get_layout_type_callback<F: Fn(&self,usize, usize)>(&self, f: &F) {
+                    fn get_layout<F: FnMut(&self,usize, usize)>(&self, f: &mut F) {
                         #ts_get_layout_callback
                     }
                 }
 
                 impl #impl_generics layout_trait::GetLayoutType for #name #ty_generics #where_clause {
-                    fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
-                        #ts_get_layout_type
-                    }
-                    fn get_layout_type_callback<F: Fn(usize, usize)>( f: &F) {
+                    fn get_layout_type<F: FnMut(usize, usize)>( f: &mut F) {
                         #ts_get_layout_type_callback
                     }
                 }
@@ -51,10 +45,7 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
         Either::Right((ts, ts_callback)) => {
             quote! {
                 impl #impl_generics layout_trait::GetLayoutType for #name #ty_generics #where_clause  {
-                    fn get_layout_type<const N: usize>(layout: &mut layout_trait::heapless::Vec<layout_trait::Layout, N>) {
-                        #ts
-                    }
-                    fn get_layout_type_callback<F: Fn(usize, usize)>( f: &F) {
+                    fn get_layout_type<F: FnMut(usize, usize)>( f: &mut F) {
                         #ts_callback
                     }
                 }
