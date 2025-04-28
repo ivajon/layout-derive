@@ -25,7 +25,7 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
         Either::Left((ts_get_layout_callback, ts_get_layout_type_callback)) => {
             quote! {
                 impl #impl_generics layout_trait::GetLayout for #name #ty_generics #where_clause {
-                    fn get_layout<F: FnMut(&self,usize, usize)>(&self, f: &mut F) {
+                    fn get_layout<F: FnMut(usize, usize)>(&self, f: &mut F) {
                         #ts_get_layout_callback
                     }
                 }
