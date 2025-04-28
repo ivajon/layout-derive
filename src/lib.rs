@@ -59,9 +59,14 @@ fn layout(data: &Data) -> Either<(TokenStream, TokenStream), TokenStream> {
             match data.fields {
                 Fields::Named(ref fields) => {
                     let recurse_callback = fields.named.iter().map(|f| {
-                        let name = &f.ty;
-                        quote_spanned! {f.span()=>
-                            self.#name.get_layout(f)
+                        let name = &f.ident;
+                        match name {
+                            Some(inner_name) => {
+                                quote_spanned! {f.span()=>
+                                    self.#inner_name.get_layout(f)
+                                }
+                            },
+                            None =>  quote_spanned! {f.span()=> compile_error!("Cannot derive layout for structs with unnamed members")}
                         }
                     });
                     let recurse_type_callback = fields.named.iter().map(|f| {
