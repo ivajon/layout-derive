@@ -22,12 +22,7 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
     let layout = layout(&input.data);
 
     let expanded = match layout {
-        Either::Left((
-            ts_get_layout,
-            ts_get_layout_type,
-            ts_get_layout_callback,
-            ts_get_layout_type_callback,
-        )) => {
+        Either::Left((ts_get_layout_callback, ts_get_layout_type_callback)) => {
             quote! {
                 impl #impl_generics layout_trait::GetLayout for #name #ty_generics #where_clause {
                     fn get_layout<F: FnMut(&self,usize, usize)>(&self, f: &mut F) {
@@ -42,7 +37,7 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
                 }
             }
         }
-        Either::Right((ts, ts_callback)) => {
+        Either::Right(ts_callback) => {
             quote! {
                 impl #impl_generics layout_trait::GetLayoutType for #name #ty_generics #where_clause  {
                     fn get_layout_type<F: FnMut(usize, usize)>( f: &mut F) {
@@ -58,88 +53,51 @@ pub fn derive_layout(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 }
 
 // Generate layout information
-fn layout(
-    data: &Data,
-) -> Either<(TokenStream, TokenStream, TokenStream, TokenStream), (TokenStream, TokenStream)> {
+fn layout(data: &Data) -> Either<(TokenStream, TokenStream), TokenStream> {
     match *data {
         Data::Struct(ref data) => {
             match data.fields {
                 Fields::Named(ref fields) => {
-                    let recurse = fields.named.iter().map(|f| {
-                        let name = &f.ident;
-                        quote_spanned! {f.span()=>
-                            self.#name.get_layout(layout)
-                        }
-                    });
-                    let recurse_type = fields.named.iter().map(|f| {
-                        let name = &f.ty;
-                        quote_spanned! {f.span()=>
-                            <#name>::get_layout_type(layout)
-                        }
-                    });
                     let recurse_callback = fields.named.iter().map(|f| {
                         let name = &f.ty;
                         quote_spanned! {f.span()=>
-                            self.#name.get_layout_callback(f)
+                            self.#name.get_layout(f)
                         }
                     });
                     let recurse_type_callback = fields.named.iter().map(|f| {
                         let name = &f.ty;
                         quote_spanned! {f.span()=>
-                            <#name>::get_layout_type_callback(f)
+                            <#name>::get_layout_type(f)
                         }
                     });
+
                     Either::Left((
-                        quote! {
-                            #(#recurse;)*
-                        },
-                        quote! {
-                            #(#recurse_type;)*
-                        },
-                        quote! {
+                        quote_spanned! {data.struct_token.span() =>
                             #(#recurse_callback;)*
                         },
-                        quote! {
+                        quote_spanned! {data.struct_token.span() =>
                             #(#recurse_type_callback;)*
                         },
                     ))
                 }
                 Fields::Unnamed(ref fields) => {
-                    let recurse = fields.unnamed.iter().enumerate().map(|(i, f)| {
-                        let index = Index::from(i);
-                        quote_spanned! {f.span()=>
-                            self.#index.get_layout(layout)
-                        }
-                    });
-                    let recurse_type = fields.unnamed.iter().map(|f| {
-                        let name = &f.ty;
-                        quote_spanned! {f.span()=>
-                            #name::get_layout_type(layout)
-                        }
-                    });
                     let recurse_callback = fields.unnamed.iter().enumerate().map(|(i, f)| {
                         let index = Index::from(i);
                         quote_spanned! {f.span()=>
-                            self.#index.get_layout_callback(f)
+                            self.#index.get_layout(f)
                         }
                     });
                     let recurse_type_callback = fields.unnamed.iter().map(|f| {
                         let name = &f.ty;
                         quote_spanned! {f.span()=>
-                            #name::get_layout_type_callback(f)
+                            #name::get_layout_type(f)
                         }
                     });
                     Either::Left((
-                        quote! {
-                           #(#recurse;)*
-                        },
-                        quote! {
-                            #(#recurse_type;)*
-                        },
-                        quote! {
+                        quote_spanned! {fields.span() =>
                            #(#recurse_callback;)*
                         },
-                        quote! {
+                        quote_spanned! {fields.span() =>
                             #(#recurse_type_callback;)*
                         },
                     ))
@@ -152,21 +110,6 @@ fn layout(
             }
         }
         Data::Enum(ref data) => {
-            let mut rec: Vec<TokenStream> = vec![];
-            for v in data.variants.iter() {
-                for f in v.fields.iter() {
-                    let ty = &f.ty;
-
-                    match ty {
-                        Type::Path(path) => {
-                            rec.push(quote_spanned! {f.span()=>
-                                #path::get_layout_type(layout);
-                            });
-                        }
-                        _ => {}
-                    }
-                }
-            }
             let mut rec_callback: Vec<TokenStream> = vec![];
             for v in data.variants.iter() {
                 for f in v.fields.iter() {
@@ -175,7 +118,7 @@ fn layout(
                     match ty {
                         Type::Path(path) => {
                             rec_callback.push(quote_spanned! {f.span()=>
-                                #path::get_layout_type_callback(f);
+                                #path::get_layout_type(f);
                             });
                         }
                         _ => {}
@@ -183,14 +126,9 @@ fn layout(
                 }
             }
 
-            Either::Right((
-                quote! {
-                    #(#rec;)*
-                },
-                quote! {
-                    #(#rec_callback;)*
-                },
-            ))
+            Either::Right(quote_spanned! { data.enum_token.span() =>
+                #(#rec_callback;)*
+            })
         }
         Data::Union(_) => unimplemented!(),
     }
